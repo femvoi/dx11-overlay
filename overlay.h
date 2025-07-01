@@ -22,15 +22,15 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace window {
 	inline HWND hwnd;
-	static HINSTANCE instance;
-	static uint32_t width, height;
+	inline HINSTANCE instance;
+	inline uint32_t width, height;
 
 	namespace directx
 	{
-		static ID3D11Device* device = nullptr;
-		static ID3D11DeviceContext* context = nullptr;
-		static IDXGISwapChain* swap_chain = nullptr;
-		static ID3D11RenderTargetView* render_target_view = nullptr;
+		inline ID3D11Device* device = nullptr;
+		inline ID3D11DeviceContext* context = nullptr;
+		inline IDXGISwapChain* swap_chain = nullptr;
+		inline ID3D11RenderTargetView* render_target_view = nullptr;
 	}
 	
 	LRESULT WINAPI WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
@@ -42,8 +42,8 @@ namespace window {
 }
 
 namespace overlay {
-	static HWND target;
-	static uint32_t width, height;
+	inline HWND target;
+	inline uint32_t width, height;
 
 	bool initialize(const wchar_t* window_class, const wchar_t* window_name);
 	bool scale();
