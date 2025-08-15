@@ -1,7 +1,6 @@
 #include "overlay.h"
 
-int main()
-{
+int main() {
 	if (!overlay::initialize(L"Notepad", L"Untitled - Notepad"))
 		return -1;
 

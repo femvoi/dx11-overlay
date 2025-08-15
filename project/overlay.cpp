@@ -12,13 +12,17 @@ LRESULT WINAPI window::WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam
 	switch (Msg)
 	{
 	case WM_SIZE:
-		return 0;
+        if (directx::device != nullptr && wParam != SIZE_MINIMIZED) {
+            window::width = LOWORD(lParam);
+            window::height = HIWORD(lParam);
+            window::resize_buffers();
+        }
+        return 0;
 
 	case WM_SYSCOMMAND:
 		if ((wParam & 0xfff0) == SC_KEYMENU)
 			return 0;
 		break;
-
 	case WM_DESTROY:
 		::PostQuitMessage(0);
 		return 0;
@@ -28,7 +32,6 @@ LRESULT WINAPI window::WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam
 	}
 	return ::DefWindowProc(hWnd, Msg, wParam, lParam);
 }
-
 
 bool window::create_device() {
     if (!hwnd || width <= 0 || height <= 0)
@@ -68,12 +71,13 @@ bool window::create_device() {
     UINT i = 0;
 
     while (dxgi_factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND) {
-        DXGI_ADAPTER_DESC adapter_desc;
+        DXGI_ADAPTER_DESC adapter_desc = { };
         adapter->GetDesc(&adapter_desc);
         if (adapter_desc.DedicatedVideoMemory > max_dedicated_video_memory) {
             max_dedicated_video_memory = adapter_desc.DedicatedVideoMemory;
             if (selected_adapter)
                 selected_adapter->Release();
+
             selected_adapter = adapter;
         }
         else {
@@ -265,6 +269,43 @@ bool window::create_window() {
     return UpdateWindow(window::hwnd);
 }
 
+void window::resize_buffers() {
+    if (!directx::swap_chain || !directx::device || !directx::context)
+        return;
+
+    if (directx::render_target_view) {
+        directx::context->OMSetRenderTargets(0, nullptr, nullptr);
+        directx::render_target_view->Release();
+        directx::render_target_view = nullptr;
+    }
+
+    HRESULT hr = directx::swap_chain->ResizeBuffers(1, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+    if (FAILED(hr))
+        return;
+
+    ID3D11Texture2D* back_buffer = nullptr;
+    hr = directx::swap_chain->GetBuffer(0, IID_PPV_ARGS(&back_buffer));
+    if (FAILED(hr) || !back_buffer)
+        return;
+
+    hr = directx::device->CreateRenderTargetView(back_buffer, nullptr, &directx::render_target_view);
+    back_buffer->Release();
+    back_buffer = nullptr;
+    if (FAILED(hr) || !directx::render_target_view)
+        return;
+
+    directx::context->OMSetRenderTargets(1, &directx::render_target_view, nullptr);
+
+    D3D11_VIEWPORT viewport = {};
+    viewport.Width = static_cast<float>(width);
+    viewport.Height = static_cast<float>(height);
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+    viewport.TopLeftX = 0.0f;
+    viewport.TopLeftY = 0.0f;
+    directx::context->RSSetViewports(1, &viewport);
+}
+
 bool overlay::scale() {
 	static RECT old;
 
@@ -303,15 +344,13 @@ void overlay::click_through(bool click) {
     SetWindowLong(window::hwnd, GWL_EXSTYLE, click ? WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW : WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
 }
 
-bool overlay::initialize(const wchar_t* window_class, const wchar_t* window_name)
-{
+bool overlay::initialize(const wchar_t* window_class, const wchar_t* window_name) {
     if (!window_class)
         return false;
 
     overlay::target = FindWindowW(window_class, window_name);
 
-    if (!overlay::target)
-    {
+    if (!overlay::target) {
         overlay::target = 0;
         return false;
     }

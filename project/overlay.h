@@ -12,6 +12,11 @@
 #include <random>
 #include <d3d11.h>
 #include <dxgi.h>
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
+#include <dxgi1_4.h>
+#include <dxgi1_5.h>
+#include <dxgi1_6.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -25,8 +30,7 @@ namespace window {
 	inline HINSTANCE instance;
 	inline uint32_t width, height;
 
-	namespace directx
-	{
+	namespace directx {
 		inline ID3D11Device* device = nullptr;
 		inline ID3D11DeviceContext* context = nullptr;
 		inline IDXGISwapChain* swap_chain = nullptr;
@@ -39,6 +43,7 @@ namespace window {
 	bool create_device();
 	void new_frame();
 	void draw();
+	void resize_buffers();
 }
 
 namespace overlay {
